@@ -205,7 +205,14 @@
 
     #download-bar.visible { display: flex; }
 
-    #btn-download {
+    .download-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    #btn-download, #btn-download-webp {
       padding: 12px 32px;
       background: linear-gradient(135deg, #7c3aed, #3b82f6);
       border: none;
@@ -217,7 +224,16 @@
       transition: opacity 0.2s;
     }
 
-    #btn-download:hover { opacity: 0.88; }
+    #btn-download-webp {
+      background: linear-gradient(135deg, #059669, #10b981);
+    }
+
+    #btn-download:hover, #btn-download-webp:hover { opacity: 0.88; }
+
+    #btn-download:disabled, #btn-download-webp:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
 
     #btn-clear {
       font-size: 0.78rem;
@@ -261,7 +277,10 @@
   <div id="queue"></div>
 
   <div id="download-bar">
-    <button id="btn-download">⬇ ดาวน์โหลด ZIP</button>
+    <div class="download-buttons">
+      <button id="btn-download">⬇ ดาวน์โหลด ZIP</button>
+      <button id="btn-download-webp">⬇ ดาวน์โหลด ZIP (WEBP)</button>
+    </div>
     <button id="btn-clear">ล้างทั้งหมด</button>
   </div>
 
@@ -273,6 +292,7 @@
     const queue = document.getElementById('queue');
     const downloadBar = document.getElementById('download-bar');
     const btnDownload = document.getElementById('btn-download');
+    const btnDownloadWebp = document.getElementById('btn-download-webp');
     const btnClear = document.getElementById('btn-clear');
     const alphaSlider = document.getElementById('alpha-threshold');
     const alphaVal = document.getElementById('alpha-val');
@@ -306,6 +326,7 @@
     });
 
     btnDownload.addEventListener('click', buildZip);
+    btnDownloadWebp.addEventListener('click', buildZipWebp);
 
     function handleFiles(files) {
       if (!files.length) return;
@@ -504,6 +525,49 @@
       URL.revokeObjectURL(url);
 
       btnDownload.textContent = '⬇ ดาวน์โหลด ZIP';
+      btnDownload.disabled = false;
+    }
+
+    async function pngBlobToWebp(blob, quality = 0.9) {
+      const img = await loadImage(blob);
+      const c = new OffscreenCanvas(img.naturalWidth || img.width, img.naturalHeight || img.height);
+      const octx = c.getContext('2d');
+      octx.clearRect(0, 0, c.width, c.height);
+      octx.drawImage(img, 0, 0);
+      return c.convertToBlob({ type: 'image/webp', quality });
+    }
+
+    async function buildZipWebp() {
+      if (!results.length) return;
+      btnDownloadWebp.textContent = '⏳ กำลังแปลงเป็น WEBP...';
+      btnDownloadWebp.disabled = true;
+      btnDownload.disabled = true;
+
+      try {
+        const zip = new JSZip();
+        for (const { filename, blobs } of results) {
+          const folder = results.length > 1 ? zip.folder(baseName(filename)) : zip;
+          for (const { name, blob } of blobs) {
+            const webpBlob = await pngBlobToWebp(blob);
+            const ab = await webpBlob.arrayBuffer();
+            folder.file(name.replace(/\.png$/i, '.webp'), ab);
+          }
+        }
+
+        const content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+        const url = URL.createObjectURL(content);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = results.length === 1 ? `${baseName(results[0].filename)}_sprites_webp.zip` : 'sprites_webp.zip';
+        a.click();
+        URL.revokeObjectURL(url);
+      } catch (err) {
+        alert('เกิดข้อผิดพลาดระหว่างแปลงเป็น WEBP: ' + err.message);
+        console.error(err);
+      }
+
+      btnDownloadWebp.textContent = '⬇ ดาวน์โหลด ZIP (WEBP)';
+      btnDownloadWebp.disabled = false;
       btnDownload.disabled = false;
     }
 

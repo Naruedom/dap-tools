@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DAP Tools</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f13;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 36px;
+    }
+
+    #tools {
+      width: 100%;
+      max-width: 680px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tool-card {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      background: #16161d;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 20px;
+      text-decoration: none;
+      color: inherit;
+      transition: border-color 0.2s, background 0.2s;
+    }
+
+    .tool-card:hover {
+      border-color: #7c3aed;
+      background: #1a1325;
+    }
+
+    .tool-icon {
+      font-size: 1.8rem;
+      flex-shrink: 0;
+    }
+
+    .tool-info { flex: 1; min-width: 0; }
+
+    .tool-name {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .tool-desc {
+      font-size: 0.83rem;
+      color: #9ca3af;
+    }
+
+    .tool-arrow {
+      font-size: 1.2rem;
+      color: #6b7280;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>DAP Tools</h1>
+  <p class="subtitle">รวมเครื่องมือที่ใช้บ่อย</p>
+
+  <div id="tools">
+    <a class="tool-card" href="png-sprite-cropper/index.html">
+      <span class="tool-icon">🖼️</span>
+      <div class="tool-info">
+        <div class="tool-name">PNG Sprite Cropper</div>
+        <div class="tool-desc">ตัด sprite จาก PNG โดยอัตโนมัติ รองรับหลายไฟล์ → ดาวน์โหลด ZIP (PNG หรือ WEBP)</div>
+      </div>
+      <span class="tool-arrow">→</span>
+    </a>
+
+    <a class="tool-card" href="webp-converter/index.html">
+      <span class="tool-icon">🗜️</span>
+      <div class="tool-info">
+        <div class="tool-name">Image to WEBP Converter</div>
+        <div class="tool-desc">แปลง PNG/JPG หลายไฟล์เป็น WEBP พร้อมปรับคุณภาพและขนาด → ดาวน์โหลด ZIP</div>
+      </div>
+      <span class="tool-arrow">→</span>
+    </a>
+
+    <a class="tool-card" href="audio-to-mp3/index.html">
+      <span class="tool-icon">🎧</span>
+      <div class="tool-info">
+        <div class="tool-name">Audio to Low-Size MP3</div>
+        <div class="tool-desc">แปลงไฟล์เสียงหลายไฟล์ (รวม .mp3) เป็น MP3 ขนาดเล็กที่สุดโดยยังฟังรู้เรื่อง → ดาวน์โหลดทีละไฟล์</div>
+      </div>
+      <span class="tool-arrow">→</span>
+    </a>
+  </div>
+</body>
+</html>

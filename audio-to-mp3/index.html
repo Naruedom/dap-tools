@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Audio to Low-Size MP3</title>
+  <script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f13;
+      color: #e8e8f0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 6px;
+      background: linear-gradient(135deg, #a78bfa, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: #6b7280;
+      margin-bottom: 32px;
+      text-align: center;
+      max-width: 640px;
+    }
+
+    #drop-zone {
+      width: 100%;
+      max-width: 680px;
+      border: 2px dashed #374151;
+      border-radius: 16px;
+      padding: 52px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: #16161d;
+      position: relative;
+    }
+
+    #drop-zone.dragover {
+      border-color: #7c3aed;
+      background: #1a1325;
+    }
+
+    #drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-icon {
+      font-size: 2.4rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .drop-label {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .drop-hint {
+      font-size: 0.8rem;
+      color: #6b7280;
+    }
+
+    #settings {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 20px;
+      background: #16161d;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .settings-row {
+      display: flex;
+      gap: 20px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .setting-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.83rem;
+      color: #9ca3af;
+    }
+
+    .setting-group label { white-space: nowrap; }
+
+    .setting-group select {
+      background: #1e1e2a;
+      border: 1px solid #374151;
+      border-radius: 6px;
+      color: #e8e8f0;
+      padding: 4px 8px;
+      font-size: 0.83rem;
+    }
+
+    .preset-hint {
+      font-size: 0.75rem;
+      color: #6b7280;
+    }
+
+    #queue {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .file-card {
+      background: #16161d;
+      border: 1px solid #1f2937;
+      border-radius: 12px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .file-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      background: #1e1e2a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.3rem;
+      flex-shrink: 0;
+    }
+
+    .file-info { flex: 1; min-width: 0; }
+
+    .file-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .file-status {
+      font-size: 0.78rem;
+      color: #6b7280;
+    }
+
+    .file-status.ok { color: #34d399; }
+    .file-status.err { color: #f87171; }
+    .file-status.pending { color: #6b7280; }
+    .file-status.working { color: #60a5fa; }
+
+    .progress-bar-wrap {
+      height: 4px;
+      background: #1f2937;
+      border-radius: 4px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #7c3aed, #3b82f6);
+      border-radius: 4px;
+      transition: width 0.3s;
+      width: 0%;
+    }
+
+    .file-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .btn-file-download {
+      padding: 6px 14px;
+      background: linear-gradient(135deg, #059669, #10b981);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: none;
+      white-space: nowrap;
+    }
+
+    .btn-file-download.visible { display: block; }
+    .btn-file-download:hover { opacity: 0.88; }
+
+    .file-remove {
+      background: none;
+      border: none;
+      color: #6b7280;
+      font-size: 0.78rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .file-remove:hover { color: #f87171; }
+
+    #summary-bar {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 14px;
+      display: none;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.8rem;
+      color: #9ca3af;
+      padding: 0 4px;
+    }
+
+    #summary-bar.visible { display: flex; }
+
+    #action-bar {
+      width: 100%;
+      max-width: 680px;
+      margin-top: 20px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    #action-bar.visible { display: flex; }
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      width: 100%;
+    }
+
+    #btn-convert, #btn-download-all {
+      padding: 12px 32px;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      flex: 1;
+      min-width: 220px;
+      max-width: 320px;
+    }
+
+    #btn-convert { background: linear-gradient(135deg, #7c3aed, #3b82f6); }
+    #btn-download-all {
+      background: linear-gradient(135deg, #059669, #10b981);
+      display: none;
+    }
+    #btn-download-all.visible { display: block; }
+
+    #btn-convert:hover, #btn-download-all:hover { opacity: 0.88; }
+    #btn-convert:disabled, #btn-download-all:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    #download-hint {
+      font-size: 0.72rem;
+      color: #6b7280;
+      text-align: center;
+      display: none;
+    }
+
+    #download-hint.visible { display: block; }
+
+    #btn-clear {
+      font-size: 0.78rem;
+      color: #6b7280;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Audio to Low-Size MP3</h1>
+  <p class="subtitle">แปลงไฟล์เสียง (mp3, wav, m4a, aac, ogg, flac ฯลฯ) หลายไฟล์ให้เป็น MP3 ขนาดเล็กที่สุดโดยยังฟังรู้เรื่อง — ดาวน์โหลดทีละไฟล์ ไม่ต้อง zip</p>
+
+  <div id="drop-zone">
+    <input type="file" id="file-input" accept="audio/*,.mp3,.wav,.m4a,.aac,.ogg,.flac,.opus,.webm" multiple />
+    <span class="drop-icon">🎧</span>
+    <div class="drop-label">วางไฟล์เสียงที่นี่ หรือคลิกเพื่อเลือก</div>
+    <div class="drop-hint">รองรับหลายไฟล์พร้อมกัน · รวมถึง .mp3</div>
+  </div>
+
+  <div id="settings">
+    <div class="settings-row">
+      <div class="setting-group">
+        <label>Bitrate</label>
+        <select id="bitrate">
+          <option value="16">16 kbps (เล็กสุด)</option>
+          <option value="24" selected>24 kbps (แนะนำ)</option>
+          <option value="32">32 kbps</option>
+          <option value="48">48 kbps</option>
+          <option value="64">64 kbps</option>
+          <option value="96">96 kbps</option>
+          <option value="128">128 kbps (คุณภาพสูง)</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label>Sample rate</label>
+        <select id="sample-rate">
+          <option value="8000">8,000 Hz</option>
+          <option value="11025">11,025 Hz</option>
+          <option value="16000" selected>16,000 Hz (แนะนำสำหรับเสียงพูด)</option>
+          <option value="22050">22,050 Hz</option>
+          <option value="32000">32,000 Hz</option>
+          <option value="44100">44,100 Hz (คุณภาพสูง)</option>
+        </select>
+      </div>
+      <div class="setting-group">
+        <label>ช่องสัญญาณ</label>
+        <select id="channel-mode">
+          <option value="mono" selected>Mono (ไฟล์เล็กสุด)</option>
+          <option value="stereo">Stereo (คงเสียงซ้าย-ขวา)</option>
+        </select>
+      </div>
+    </div>
+    <div class="preset-hint">ค่าเริ่มต้น (24 kbps · 16,000 Hz · Mono) เหมาะกับเสียงพูด/บันทึกประชุม ให้ไฟล์เล็กที่สุดแต่ยังฟังรู้เรื่อง — เพลงหรืองานที่ต้องการคุณภาพสูงขึ้น ให้ปรับ bitrate/sample rate ขึ้น</div>
+  </div>
+
+  <div id="summary-bar">
+    <span id="summary-count">0 ไฟล์</span>
+    <span id="summary-size"></span>
+  </div>
+
+  <div id="queue"></div>
+
+  <div id="action-bar">
+    <div class="action-buttons">
+      <button id="btn-convert">⚙ แปลงไฟล์ทั้งหมด</button>
+      <button id="btn-download-all">⬇ ดาวน์โหลดทั้งหมด (ทีละไฟล์)</button>
+    </div>
+    <div id="download-hint">เบราว์เซอร์อาจถามอนุญาตดาวน์โหลดหลายไฟล์พร้อมกัน กด "อนุญาต" เพื่อรับไฟล์ครบทุกไฟล์</div>
+    <button id="btn-clear">ล้างทั้งหมด</button>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const queue = document.getElementById('queue');
+    const actionBar = document.getElementById('action-bar');
+    const btnConvert = document.getElementById('btn-convert');
+    const btnDownloadAll = document.getElementById('btn-download-all');
+    const btnClear = document.getElementById('btn-clear');
+    const bitrateSelect = document.getElementById('bitrate');
+    const sampleRateSelect = document.getElementById('sample-rate');
+    const channelModeSelect = document.getElementById('channel-mode');
+    const summaryBar = document.getElementById('summary-bar');
+    const summaryCount = document.getElementById('summary-count');
+    const summarySize = document.getElementById('summary-size');
+    const downloadHint = document.getElementById('download-hint');
+
+    // items: { id, file, card, status, originalSize, resultBlob, resultSize, outName }
+    let items = [];
+    let idCounter = 0;
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('dragover');
+      handleFiles([...e.dataTransfer.files].filter(isSupported));
+    });
+    fileInput.addEventListener('change', () => {
+      handleFiles([...fileInput.files].filter(isSupported));
+      fileInput.value = '';
+    });
+
+    function isSupported(f) {
+      return /^audio\//i.test(f.type) || /\.(mp3|wav|m4a|aac|ogg|flac|opus|webm|wma|aiff|aif)$/i.test(f.name);
+    }
+
+    btnClear.addEventListener('click', resetAll);
+    btnConvert.addEventListener('click', convertAll);
+    btnDownloadAll.addEventListener('click', downloadAll);
+
+    function handleFiles(files) {
+      if (!files.length) return;
+      files.forEach(file => addItem(file));
+      updateSummary();
+      actionBar.classList.add('visible');
+      btnDownloadAll.classList.remove('visible');
+      downloadHint.classList.remove('visible');
+    }
+
+    function addItem(file) {
+      const id = ++idCounter;
+      const card = createCard(file, id);
+      queue.appendChild(card);
+      items.push({ id, file, card, status: 'pending', originalSize: file.size, resultBlob: null, resultSize: 0, outName: '' });
+    }
+
+    function removeItem(id) {
+      const item = items.find(it => it.id === id);
+      if (item) item.card.remove();
+      items = items.filter(it => it.id !== id);
+      updateSummary();
+      if (!items.length) {
+        actionBar.classList.remove('visible');
+      }
+    }
+
+    function resetAll() {
+      items = [];
+      queue.innerHTML = '';
+      actionBar.classList.remove('visible');
+      btnDownloadAll.classList.remove('visible');
+      downloadHint.classList.remove('visible');
+      summaryBar.classList.remove('visible');
+    }
+
+    function updateSummary() {
+      if (!items.length) {
+        summaryBar.classList.remove('visible');
+        return;
+      }
+      summaryBar.classList.add('visible');
+      const totalOriginal = items.reduce((s, it) => s + it.originalSize, 0);
+      summaryCount.textContent = `${items.length} ไฟล์`;
+      const doneItems = items.filter(it => it.status === 'ok');
+      if (doneItems.length) {
+        const totalResult = doneItems.reduce((s, it) => s + it.resultSize, 0);
+        const pct = totalOriginal ? Math.round((1 - totalResult / totalOriginal) * 100) : 0;
+        summarySize.textContent = `${formatBytes(totalOriginal)} → ${formatBytes(totalResult)} (ลดลง ${pct}%)`;
+      } else {
+        summarySize.textContent = formatBytes(totalOriginal);
+      }
+    }
+
+    async function convertAll() {
+      if (!items.length) return;
+      btnConvert.disabled = true;
+      btnConvert.textContent = '⏳ กำลังแปลง...';
+
+      const bitrate = parseInt(bitrateSelect.value, 10);
+      const targetSampleRate = parseInt(sampleRateSelect.value, 10);
+      const channels = channelModeSelect.value === 'stereo' ? 2 : 1;
+
+      for (const item of items) {
+        setStatus(item.card, 'working', 'กำลังถอดรหัสไฟล์...');
+        setProgress(item.card, 5);
+        try {
+          const arrayBuffer = await item.file.arrayBuffer();
+          const decodeCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const decoded = await decodeCtx.decodeAudioData(arrayBuffer.slice(0));
+          decodeCtx.close && decodeCtx.close();
+
+          setProgress(item.card, 25);
+          setStatus(item.card, 'working', 'กำลัง resample...');
+
+          const renderedChannels = Math.min(channels, decoded.numberOfChannels || 1);
+          const offlineCtx = new OfflineAudioContext(
+            renderedChannels,
+            Math.ceil(decoded.duration * targetSampleRate),
+            targetSampleRate
+          );
+          const src = offlineCtx.createBufferSource();
+          src.buffer = decoded;
+          src.connect(offlineCtx.destination);
+          src.start(0);
+          const rendered = await offlineCtx.startRendering();
+
+          setProgress(item.card, 55);
+          setStatus(item.card, 'working', 'กำลังเข้ารหัส MP3...');
+
+          const blob = await encodeMp3(rendered, bitrate);
+
+          const outName = baseName(item.file.name) + '-low.mp3';
+          item.resultBlob = blob;
+          item.resultSize = blob.size;
+          item.outName = outName;
+          item.status = 'ok';
+
+          const savedPct = item.originalSize ? Math.round((1 - blob.size / item.originalSize) * 100) : 0;
+          setProgress(item.card, 100);
+          setStatus(item.card, 'ok', `เสร็จ — ${formatBytes(item.originalSize)} → ${formatBytes(blob.size)} (${savedPct >= 0 ? 'ลดลง ' + savedPct + '%' : 'เพิ่มขึ้น ' + Math.abs(savedPct) + '%'})`);
+          const dlBtn = item.card.querySelector('.btn-file-download');
+          dlBtn.classList.add('visible');
+        } catch (err) {
+          item.status = 'err';
+          setProgress(item.card, 100);
+          setStatus(item.card, 'err', `Error: ${err.message}`);
+          console.error(err);
+        }
+      }
+
+      updateSummary();
+      btnConvert.disabled = false;
+      btnConvert.textContent = '⚙ แปลงไฟล์ทั้งหมด';
+
+      if (items.some(it => it.status === 'ok')) {
+        btnDownloadAll.classList.add('visible');
+        downloadHint.classList.add('visible');
+      }
+    }
+
+    function encodeMp3(audioBuffer, bitrateKbps) {
+      return new Promise((resolve, reject) => {
+        try {
+          const channels = audioBuffer.numberOfChannels;
+          const sampleRate = audioBuffer.sampleRate;
+          const mp3encoder = new lamejs.Mp3Encoder(channels, sampleRate, bitrateKbps);
+
+          const left = floatTo16BitPCM(audioBuffer.getChannelData(0));
+          const right = channels > 1 ? floatTo16BitPCM(audioBuffer.getChannelData(1)) : null;
+
+          const blockSize = 1152;
+          const mp3Data = [];
+
+          for (let i = 0; i < left.length; i += blockSize) {
+            const leftChunk = left.subarray(i, i + blockSize);
+            let mp3buf;
+            if (channels > 1) {
+              const rightChunk = right.subarray(i, i + blockSize);
+              mp3buf = mp3encoder.encodeBuffer(leftChunk, rightChunk);
+            } else {
+              mp3buf = mp3encoder.encodeBuffer(leftChunk);
+            }
+            if (mp3buf.length > 0) mp3Data.push(new Uint8Array(mp3buf));
+          }
+
+          const endBuf = mp3encoder.flush();
+          if (endBuf.length > 0) mp3Data.push(new Uint8Array(endBuf));
+
+          resolve(new Blob(mp3Data, { type: 'audio/mpeg' }));
+        } catch (err) {
+          reject(err);
+        }
+      });
+    }
+
+    function floatTo16BitPCM(floatArray) {
+      const out = new Int16Array(floatArray.length);
+      for (let i = 0; i < floatArray.length; i++) {
+        let s = Math.max(-1, Math.min(1, floatArray[i]));
+        out[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      }
+      return out;
+    }
+
+    function downloadSingle(item) {
+      if (!item.resultBlob) return;
+      const url = URL.createObjectURL(item.resultBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = item.outName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 2000);
+    }
+
+    async function downloadAll() {
+      const okItems = items.filter(it => it.status === 'ok' && it.resultBlob);
+      for (const item of okItems) {
+        downloadSingle(item);
+        await sleep(400);
+      }
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    // helpers
+    function createCard(file, id) {
+      const div = document.createElement('div');
+      div.className = 'file-card';
+      div.innerHTML = `
+        <div class="file-icon">🎵</div>
+        <div class="file-info">
+          <div class="file-name">${escHtml(file.name)}</div>
+          <div class="file-status pending">รอแปลง — ${formatBytes(file.size)}</div>
+          <div class="progress-bar-wrap"><div class="progress-bar"></div></div>
+        </div>
+        <div class="file-actions">
+          <button class="btn-file-download">⬇ ดาวน์โหลด</button>
+          <button class="file-remove">ลบ</button>
+        </div>`;
+      div.querySelector('.file-remove').addEventListener('click', () => removeItem(id));
+      div.querySelector('.btn-file-download').addEventListener('click', () => {
+        const item = items.find(it => it.id === id);
+        if (item) downloadSingle(item);
+      });
+      return div;
+    }
+
+    function setStatus(card, cls, msg) {
+      const el = card.querySelector('.file-status');
+      el.className = 'file-status' + (cls ? ' ' + cls : '');
+      el.textContent = msg;
+    }
+
+    function setProgress(card, pct) {
+      card.querySelector('.progress-bar').style.width = pct + '%';
+    }
+
+    function baseName(filename) {
+      return filename.replace(/\.[^/.]+$/, '');
+    }
+
+    function escHtml(str) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+    }
+  </script>
+</body>
+</html>
